@@ -1,0 +1,61 @@
+{
+    "version": 1,
+    "modules": [
+        {
+            "moduleId": "date-and-time",
+            "name": "Date and Time",
+            "duration": 5000,
+            "city": "Meerut",
+            "refreshTime": 50000,
+            "config": {
+                "date": {
+                    "color": "#FFFFFF"
+                },
+                "time": {
+                    "color": "#EEEEEE"
+                },
+                "temperature": {
+                    "color": "#AFAFAF"
+                },
+                "cloudCover": {
+                    "color": "#AFAFAF"
+                },
+                "humidity": {
+                    "color": "#AFAFAF"
+                },
+                "aqi": {
+                    "color": "#AFAFAF"
+                }
+            },
+            "enabled": true
+        },
+        {
+            "moduleId": "spotify",
+            "name": "Spotify",
+            "duration": 5000,
+            "refreshTime": 5000,
+            "config": {
+                "song": {
+                    "color": "#FFFFFF"
+                }
+            },
+            "enabled": true
+        },
+        {
+            "moduleId": "calendar",
+            "name": "Calendar",
+            "duration": 5000,
+            "config": {
+                "event": {
+                    "color": "#FFFFFF",
+                    "scroll": true
+                },
+                "time": {
+                    "color": "#FAFAFA",
+                    "scroll": true
+                }
+            },
+            "enabled": true
+        }
+    ]
+}

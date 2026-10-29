@@ -1,0 +1,140 @@
+
+{
+  "version": 13,
+  "modules": [
+    {
+      "moduleId": "date-and-time",
+      "name": "Date and Time",
+      "enabled": true,
+      "duration": 5000,
+      "refreshTime": 50000,
+      "payload": {
+        "latitude": 28.9833,
+        "longitude": 77.7,
+        "timezone": "Asia/Kolkata"
+      },
+      "display": {
+        "mode": "single",
+        "renderer": "weather"
+      },
+      "config": {
+        "date": { "color": "#74C0FC" },
+        "time": { "color": "#FFFFFF" },
+        "temperature": { "color": "#FFB74D" },
+        "cloudCover": { "color": "#90A4AE" },
+        "humidity": { "color": "#4FC3F7" },
+        "aqi": { "color": "#FF7043" }
+      }
+    },
+    {
+      "moduleId": "spotify",
+      "name": "Spotify",
+      "enabled": true,
+      "duration": 10000,
+      "refreshTime": 10000,
+      "payload": {},
+      "display": {
+        "mode": "single",
+        "renderer": "music"
+      },
+      "config": {
+        "song": { "color": "#1DB954", "scroll": true },
+        "artist": { "color": "#A7B0AA", "scroll": true }
+      }
+    },
+    {
+        "moduleId": "hacker-news",
+        "name": "Hacker News",
+        "enabled": true,
+        "duration": 5000,
+        "payload": {
+            "batchSize": 5
+        },
+        "stateMapping": {
+            "nextIndex": {
+                "responsePath": "nextState.nextIndex",
+                "requestPath": "payload.nextIndex",
+                "defaultValue": 0
+            },
+            "version": {
+                "responsePath": "nextState.version",
+                "requestPath": "payload.version",
+                "defaultValue": null
+            }
+        },
+        "display": {
+            "mode": "list",
+            "renderer": "heading-text",
+            "order": "sequential"
+        },
+        "config": {
+            "title": {
+            "color": "#1DB954",
+            "scroll": true
+            }
+        }
+    },
+    {
+      "moduleId": "google-calendar",
+      "name": "Google Calendar",
+      "enabled": true,
+      "duration": 10000,
+      "refreshTime": 60000,
+      "payload": {
+        "calendarId": "tushar1214mrt@gmail.com",
+        "timeZone": "Asia/Kolkata",
+        "maxResults": 50
+      },
+      "display": {
+        "mode": "list",
+        "renderer": "calendar-events",
+        "order": "sequential"
+      },
+      "config": {
+        "event": { "color": "#FFFFFF", "scroll": true },
+        "time": { "color": "#74C0FC", "scroll": true }
+      }
+    },
+    {
+      "moduleId": "vocabulary",
+      "name": "Vocabulary",
+      "enabled": true,
+      "duration": 10000,
+      "payload": {
+        "batchSize": 5
+      },
+      "display": {
+        "mode": "list",
+        "renderer": "vocabulary-words",
+        "order": "sequential"
+      },
+      "config": {
+        "word": { "color": "#1DB954", "scroll": true },
+        "definition": { "color": "#FFFFFF", "scroll": true },
+        "example": { "color": "#A7B0AA", "scroll": true }
+      }
+    },
+    {
+      "moduleId": "focus-countdown",
+      "name": "Focus Countdown",
+      "enabled": true,
+      "duration": 10000,
+      "payload": {
+        "timerDurationMinutes": 25,
+        "breakDurationMinutes": 5
+      },
+      "display": {
+        "mode": "single",
+        "renderer": "countdown"
+      },
+      "config": {
+        "timer": {
+          "color": "#FFFFFF"
+        },
+        "break": {
+          "color": "#1DB954"
+        }
+      }
+    }
+  ]
+}
