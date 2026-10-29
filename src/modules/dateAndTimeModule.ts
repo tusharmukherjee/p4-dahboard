@@ -34,8 +34,14 @@ export class DateTimeModule extends BaseModule<DateTimeConfig, DateTimeData> {
         context: ModuleContext,
     ) {
         const [weather, aqi] = await Promise.all([
-            this.fetchWeather(config.city).catch(() => null),
-            this.fetchAqi(config.city).catch(() => null),
+            this.fetchWeather(config.city).catch((error: unknown) => {
+                console.error("Failed to fetch weather from Open-Meteo:", error);
+                return null;
+            }),
+            this.fetchAqi(config.city).catch((error: unknown) => {
+                console.error("Failed to fetch air quality from Open-Meteo:", error);
+                return null;
+            }),
         ])
         return {
             date: context.now.toLocaleDateString(),
