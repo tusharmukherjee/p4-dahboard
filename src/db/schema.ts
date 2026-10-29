@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { DashboardModuleConfig } from "../config/dashboardConfig.js";
 
 // One row represents a person allowed to call the protected API.
 export const systemUsers = pgTable("system_users", {
@@ -25,3 +26,12 @@ export const oauthTokens = pgTable("oauth_tokens", {
 }, (table) => [
     uniqueIndex("oauth_tokens_user_provider_unique").on(table.userId, table.provider),
 ]);
+
+// A JSONB array keeps module-specific payloads flexible while version remains
+// a normal column for fast ESP configuration checks.
+export const dashboardConfigurations = pgTable("dashboard_configurations", {
+    id: text("id").primaryKey(),
+    version: integer("version").notNull(),
+    modules: jsonb("modules").$type<DashboardModuleConfig[]>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

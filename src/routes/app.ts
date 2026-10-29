@@ -28,11 +28,7 @@ registry.register(new GoogleCalendarModule(googleOAuth));
 registry.register(new VocabularyModule());
 registry.register(new CountdownModule());
 
-const configPath =
-  process.env.DASHBOARD_CONFIG_PATH ??
-  "./src/config/dashboardConfigfixed.json";
-
-const configRepository = new DashboardConfigurationRepository(configPath);
+const configRepository = new DashboardConfigurationRepository();
 const spotifyOAuth = new SpotifyOAuth();
 const moduleDataService = new ModuleDataService();
 
@@ -118,6 +114,44 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString()
     })
 })
+
+app.get("/api/configuration", requireBasicAuth, async (_req, res) => {
+    try {
+        res.json(await configRepository.getConfiguration());
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to read configuration";
+        res.status(500).json({ error: message });
+    }
+});
+
+app.put("/api/configuration", requireBasicAuth, async (req, res) => {
+    const expectedVersion = req.body?.expectedVersion;
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
+        res.status(400).json({ error: "expectedVersion must be a non-negative integer" });
+        return;
+    }
+
+    try {
+        const configuration = await configRepository.updateConfiguration(
+            req.body?.modules,
+            expectedVersion,
+        );
+        if (!configuration) {
+            const current = await configRepository.getConfiguration();
+            res.status(409).json({
+                error: "Configuration was updated by another request",
+                currentVersion: current.version,
+            });
+            return;
+        }
+
+        moduleDataService.clear();
+        res.json(configuration);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to update configuration";
+        res.status(400).json({ error: message });
+    }
+});
 
 app.post("/api/modules/:moduleId/data", async (req, res) => {
     const moduleId = req.params.moduleId;

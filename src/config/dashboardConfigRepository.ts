@@ -1,103 +1,144 @@
-import { readFile } from "node:fs/promises";
+import { and, eq, sql } from "drizzle-orm";
+import { getDatabase } from "../db/client.js";
+import { dashboardConfigurations } from "../db/schema.js";
 import type {
     DashboardConfiguration,
     DashboardModuleConfig,
 } from "./dashboardConfig.js";
 
+const DEFAULT_CONFIGURATION_ID = "default";
+
 export class DashboardConfigurationRepository {
-    constructor(
-        private readonly filepath: string,
-    ) {}
-
     async getConfiguration(): Promise<DashboardConfiguration> {
-        const contents = await readFile(this.filepath, "utf8");
-        const parsed: unknown = JSON.parse(contents);
+        const [row] = await getDatabase()
+            .select({
+                version: dashboardConfigurations.version,
+                modules: dashboardConfigurations.modules,
+            })
+            .from(dashboardConfigurations)
+            .where(eq(dashboardConfigurations.id, DEFAULT_CONFIGURATION_ID))
+            .limit(1);
 
-        if (!isRecord(parsed)) {
-            throw new Error("Dashboard configuration must be an object");
-        }
-        if (!Number.isInteger(parsed.version) || (parsed.version as number) < 0) {
-            throw new Error("Configuration version must be a non-negative integer");
-        }
-        if (!Array.isArray(parsed.modules)) {
-            throw new Error("Configuration modules must be an array");
+        if (!row) {
+            throw new Error("Dashboard configuration is not initialized; run npm run db:migrate");
         }
 
-        const moduleIds = new Set<string>();
-        const modules = parsed.modules.map((module, index) => {
-            const validated = this.validateModule(module, index);
-            if (moduleIds.has(validated.moduleId)) {
-                throw new Error(`Duplicate moduleId: ${validated.moduleId}`);
-            }
-            moduleIds.add(validated.moduleId);
-            return validated;
+        return validateDashboardConfiguration(row);
+    }
+
+    async updateConfiguration(
+        modules: unknown,
+        expectedVersion: number,
+    ): Promise<DashboardConfiguration | null> {
+        const validated = validateDashboardConfiguration({
+            version: expectedVersion,
+            modules,
         });
 
-        return {
-            version: parsed.version as number,
-            modules,
-        };
+        const [updated] = await getDatabase()
+            .update(dashboardConfigurations)
+            .set({
+                modules: validated.modules,
+                version: sql`${dashboardConfigurations.version} + 1`,
+                updatedAt: new Date(),
+            })
+            .where(and(
+                eq(dashboardConfigurations.id, DEFAULT_CONFIGURATION_ID),
+                eq(dashboardConfigurations.version, expectedVersion),
+            ))
+            .returning({
+                version: dashboardConfigurations.version,
+                modules: dashboardConfigurations.modules,
+            });
+
+        return updated ? validateDashboardConfiguration(updated) : null;
+    }
+}
+
+export function validateDashboardConfiguration(value: unknown): DashboardConfiguration {
+    if (!isRecord(value)) {
+        throw new Error("Dashboard configuration must be an object");
+    }
+    if (!Number.isInteger(value.version) || (value.version as number) < 0) {
+        throw new Error("Configuration version must be a non-negative integer");
+    }
+    if (!Array.isArray(value.modules)) {
+        throw new Error("Configuration modules must be an array");
     }
 
-    private validateModule(value: unknown, index: number): DashboardModuleConfig {
-        const location = `modules[${index}]`;
-        if (!isRecord(value)) {
-            throw new Error(`${location} must be an object`);
+    const moduleIds = new Set<string>();
+    const modules = value.modules.map((module, index) => {
+        const validated = validateModule(module, index);
+        if (moduleIds.has(validated.moduleId)) {
+            throw new Error(`Duplicate moduleId: ${validated.moduleId}`);
         }
+        moduleIds.add(validated.moduleId);
+        return validated;
+    });
 
-        requireNonEmptyString(value.moduleId, `${location}.moduleId`);
-        requireNonEmptyString(value.name, `${location}.name`);
-        requirePositiveNumber(value.duration, `${location}.duration`);
-        if (typeof value.enabled !== "boolean") {
-            throw new Error(`${location}.enabled must be a boolean`);
-        }
-        if (value.refreshTime !== undefined) {
-            requirePositiveNumber(value.refreshTime, `${location}.refreshTime`);
-        }
-        if (value.city !== undefined) {
-            requireNonEmptyString(value.city, `${location}.city`);
-        }
-        if (value.payload !== undefined && !isRecord(value.payload)) {
-            throw new Error(`${location}.payload must be an object`);
-        }
-        if (!isRecord(value.config)) {
-            throw new Error(`${location}.config must be an object`);
-        }
+    return {
+        version: value.version as number,
+        modules,
+    };
+}
 
-        if (value.display !== undefined) {
-            if (!isRecord(value.display)) {
-                throw new Error(`${location}.display must be an object`);
-            }
-            requireNonEmptyString(value.display.mode, `${location}.display.mode`);
-            requireNonEmptyString(value.display.renderer, `${location}.display.renderer`);
-            if (value.display.order !== undefined) {
-                requireNonEmptyString(value.display.order, `${location}.display.order`);
-            }
-        }
-
-        if (value.stateMapping !== undefined) {
-            this.validateStateMapping(value.stateMapping, `${location}.stateMapping`);
-        }
-
-        return value as unknown as DashboardModuleConfig;
+function validateModule(value: unknown, index: number): DashboardModuleConfig {
+    const location = `modules[${index}]`;
+    if (!isRecord(value)) {
+        throw new Error(`${location} must be an object`);
     }
 
-    private validateStateMapping(value: unknown, location: string): void {
-        if (!isRecord(value)) {
-            throw new Error(`${location} must be an object`);
+    requireNonEmptyString(value.moduleId, `${location}.moduleId`);
+    requireNonEmptyString(value.name, `${location}.name`);
+    requirePositiveNumber(value.duration, `${location}.duration`);
+    if (typeof value.enabled !== "boolean") {
+        throw new Error(`${location}.enabled must be a boolean`);
+    }
+    if (value.refreshTime !== undefined) {
+        requirePositiveNumber(value.refreshTime, `${location}.refreshTime`);
+    }
+    if (value.city !== undefined) {
+        requireNonEmptyString(value.city, `${location}.city`);
+    }
+    if (value.payload !== undefined && !isRecord(value.payload)) {
+        throw new Error(`${location}.payload must be an object`);
+    }
+    if (!isRecord(value.config)) {
+        throw new Error(`${location}.config must be an object`);
+    }
+
+    if (value.display !== undefined) {
+        if (!isRecord(value.display)) {
+            throw new Error(`${location}.display must be an object`);
         }
+        requireNonEmptyString(value.display.mode, `${location}.display.mode`);
+        requireNonEmptyString(value.display.renderer, `${location}.display.renderer`);
+        if (value.display.order !== undefined) {
+            requireNonEmptyString(value.display.order, `${location}.display.order`);
+        }
+    }
 
-        for (const [stateName, mapping] of Object.entries(value)) {
-            const mappingLocation = `${location}.${stateName}`;
-            if (!isRecord(mapping)) {
-                throw new Error(`${mappingLocation} must be an object`);
-            }
-            requireNonEmptyString(mapping.responsePath, `${mappingLocation}.responsePath`);
-            requireNonEmptyString(mapping.requestPath, `${mappingLocation}.requestPath`);
-            if (!("defaultValue" in mapping)) {
-                throw new Error(`${mappingLocation}.defaultValue is required`);
-            }
+    if (value.stateMapping !== undefined) {
+        validateStateMapping(value.stateMapping, `${location}.stateMapping`);
+    }
 
+    return value as unknown as DashboardModuleConfig;
+}
+
+function validateStateMapping(value: unknown, location: string): void {
+    if (!isRecord(value)) {
+        throw new Error(`${location} must be an object`);
+    }
+
+    for (const [stateName, mapping] of Object.entries(value)) {
+        const mappingLocation = `${location}.${stateName}`;
+        if (!isRecord(mapping)) {
+            throw new Error(`${mappingLocation} must be an object`);
+        }
+        requireNonEmptyString(mapping.responsePath, `${mappingLocation}.responsePath`);
+        requireNonEmptyString(mapping.requestPath, `${mappingLocation}.requestPath`);
+        if (!("defaultValue" in mapping)) {
+            throw new Error(`${mappingLocation}.defaultValue is required`);
         }
     }
 }
