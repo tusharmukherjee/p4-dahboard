@@ -13,6 +13,20 @@ export interface DashboardStateMappingEntry {
 
 export type DashboardScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
+export type DashboardAnimationId =
+  | "asteroid-earth"
+  | "aquarium"
+  | "campfire"
+  | "cat-and-fly"
+  | "dragon-eye"
+  | "earth-and-sun"
+  | "messi-barca"
+  | "moon-stars"
+  | "moving-car"
+  | "moving-stars"
+  | "sleepy-cat"
+  | "solar-system";
+
 export interface DashboardScheduleConfig {
   enabled: boolean;
   startTime: string;

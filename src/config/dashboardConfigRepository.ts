@@ -137,6 +137,12 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
         if (value.display.order !== undefined) {
             requireNonEmptyString(value.display.order, `${location}.display.order`);
         }
+        if (value.display.renderer === "animation") {
+            const animationId = isRecord(value.staticData) ? value.staticData.animationId : undefined;
+            if (typeof animationId !== "string" || !ANIMATION_IDS.has(animationId)) {
+                throw new Error(`${location}.staticData.animationId must be a supported animation`);
+            }
+        }
     }
 
     if (value.stateMapping !== undefined) {
@@ -147,6 +153,11 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
 }
 
 const SCHEDULE_DAYS = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+const ANIMATION_IDS = new Set([
+    "asteroid-earth", "aquarium", "campfire", "cat-and-fly", "dragon-eye",
+    "earth-and-sun", "messi-barca", "moon-stars", "moving-car", "moving-stars",
+    "sleepy-cat", "solar-system",
+]);
 
 function validateSchedule(value: unknown, location: string): void {
     if (!isRecord(value)) {
