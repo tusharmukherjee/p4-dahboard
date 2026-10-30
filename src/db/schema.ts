@@ -32,6 +32,7 @@ export const oauthTokens = pgTable("oauth_tokens", {
 export const dashboardConfigurations = pgTable("dashboard_configurations", {
     id: text("id").primaryKey(),
     version: integer("version").notNull(),
+    brightness: integer("brightness").default(50).notNull(),
     modules: jsonb("modules").$type<DashboardModuleConfig[]>().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

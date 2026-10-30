@@ -13,6 +13,7 @@ export class DashboardConfigurationRepository {
         const [row] = await getDatabase()
             .select({
                 version: dashboardConfigurations.version,
+                brightness: dashboardConfigurations.brightness,
                 modules: dashboardConfigurations.modules,
             })
             .from(dashboardConfigurations)
@@ -28,10 +29,12 @@ export class DashboardConfigurationRepository {
 
     async updateConfiguration(
         modules: unknown,
+        brightness: unknown,
         expectedVersion: number,
     ): Promise<DashboardConfiguration | null> {
         const validated = validateDashboardConfiguration({
             version: expectedVersion,
+            brightness,
             modules,
         });
 
@@ -39,6 +42,7 @@ export class DashboardConfigurationRepository {
             .update(dashboardConfigurations)
             .set({
                 modules: validated.modules,
+                brightness: validated.brightness,
                 version: sql`${dashboardConfigurations.version} + 1`,
                 updatedAt: new Date(),
             })
@@ -48,6 +52,7 @@ export class DashboardConfigurationRepository {
             ))
             .returning({
                 version: dashboardConfigurations.version,
+                brightness: dashboardConfigurations.brightness,
                 modules: dashboardConfigurations.modules,
             });
 
@@ -61,6 +66,9 @@ export function validateDashboardConfiguration(value: unknown): DashboardConfigu
     }
     if (!Number.isInteger(value.version) || (value.version as number) < 0) {
         throw new Error("Configuration version must be a non-negative integer");
+    }
+    if (!Number.isInteger(value.brightness) || (value.brightness as number) < 0 || (value.brightness as number) > 100) {
+        throw new Error("Configuration brightness must be an integer from 0 to 100");
     }
     if (!Array.isArray(value.modules)) {
         throw new Error("Configuration modules must be an array");
@@ -78,6 +86,7 @@ export function validateDashboardConfiguration(value: unknown): DashboardConfigu
 
     return {
         version: value.version as number,
+        brightness: value.brightness as number,
         modules,
     };
 }

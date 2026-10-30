@@ -167,6 +167,7 @@ app.put("/api/configuration", requireBasicAuth, async (req, res) => {
     try {
         const configuration = await configRepository.updateConfiguration(
             req.body?.modules,
+            req.body?.brightness,
             expectedVersion,
         );
         if (!configuration) {

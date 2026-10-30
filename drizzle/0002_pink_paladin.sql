@@ -1,0 +1,1 @@
+ALTER TABLE "dashboard_configurations" ADD COLUMN "brightness" integer DEFAULT 50 NOT NULL;

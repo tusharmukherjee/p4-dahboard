@@ -29,5 +29,6 @@ export interface DashboardModuleConfig {
 
 export interface DashboardConfiguration {
   version: number;
+  brightness: number;
   modules: DashboardModuleConfig[];
 }

@@ -20,6 +20,7 @@ await getDatabase()
     .values({
         id: "default",
         version: seed.version,
+        brightness: seed.brightness,
         modules: seed.modules,
     })
     .onConflictDoNothing({ target: dashboardConfigurations.id });
