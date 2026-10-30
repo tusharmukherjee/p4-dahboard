@@ -112,6 +112,9 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
     if (value.dataSource === "configuration" && !isRecord(value.staticData)) {
         throw new Error(`${location}.staticData is required when dataSource is configuration`);
     }
+    if (value.schedule !== undefined) {
+        validateSchedule(value.schedule, `${location}.schedule`);
+    }
     if (value.refreshTime !== undefined) {
         requirePositiveNumber(value.refreshTime, `${location}.refreshTime`);
     }
@@ -141,6 +144,33 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
     }
 
     return value as unknown as DashboardModuleConfig;
+}
+
+const SCHEDULE_DAYS = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+
+function validateSchedule(value: unknown, location: string): void {
+    if (!isRecord(value)) {
+        throw new Error(`${location} must be an object`);
+    }
+    if (typeof value.enabled !== "boolean") {
+        throw new Error(`${location}.enabled must be a boolean`);
+    }
+    requireTime(value.startTime, `${location}.startTime`);
+    requireTime(value.endTime, `${location}.endTime`);
+    requireNonEmptyString(value.timezone, `${location}.timezone`);
+    if (!Array.isArray(value.days) || value.days.length === 0) {
+        throw new Error(`${location}.days must be a non-empty array`);
+    }
+    const uniqueDays = new Set(value.days);
+    if (uniqueDays.size !== value.days.length || value.days.some((day) => typeof day !== "string" || !SCHEDULE_DAYS.has(day))) {
+        throw new Error(`${location}.days must contain unique values from mon through sun`);
+    }
+}
+
+function requireTime(value: unknown, location: string): asserts value is string {
+    if (typeof value !== "string" || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+        throw new Error(`${location} must use 24-hour HH:mm format`);
+    }
 }
 
 function validateStateMapping(value: unknown, location: string): void {

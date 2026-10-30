@@ -11,6 +11,16 @@ export interface DashboardStateMappingEntry {
   defaultValue: unknown;
 }
 
+export type DashboardScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+export interface DashboardScheduleConfig {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+  timezone: string;
+  days: DashboardScheduleDay[];
+}
+
 export interface DashboardModuleConfig {
   moduleId: string;
   name: string;
@@ -19,6 +29,7 @@ export interface DashboardModuleConfig {
   /** Use "configuration" when the ESP should render staticData without calling the module API. */
   dataSource?: "api" | "configuration";
   staticData?: Record<string, unknown>;
+  schedule?: DashboardScheduleConfig;
   refreshTime?: number;
   city?: string;
   payload?: Record<string, unknown>;

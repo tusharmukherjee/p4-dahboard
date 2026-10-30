@@ -1,6 +1,6 @@
 
 {
-  "version": 14,
+  "version": 15,
   "brightness": 50,
   "modules": [
     {
@@ -134,6 +134,36 @@
           "scroll": true
         }
       }
+    },
+    {
+      "moduleId": "scheduled-animation",
+      "name": "Evening Animation",
+      "enabled": true,
+      "duration": 10000,
+      "dataSource": "configuration",
+      "display": {
+        "mode": "single",
+        "renderer": "animation"
+      },
+      "staticData": {
+        "animationId": "campfire"
+      },
+      "schedule": {
+        "enabled": true,
+        "startTime": "20:00",
+        "endTime": "23:00",
+        "timezone": "Asia/Kolkata",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ]
+      },
+      "config": {}
     },
     {
       "moduleId": "focus-countdown",
