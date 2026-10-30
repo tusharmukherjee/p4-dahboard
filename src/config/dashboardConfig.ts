@@ -16,6 +16,9 @@ export interface DashboardModuleConfig {
   name: string;
   duration: number;
   enabled: boolean;
+  /** Use "configuration" when the ESP should render staticData without calling the module API. */
+  dataSource?: "api" | "configuration";
+  staticData?: Record<string, unknown>;
   refreshTime?: number;
   city?: string;
   payload?: Record<string, unknown>;

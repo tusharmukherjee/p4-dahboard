@@ -115,6 +115,39 @@ app.get('/health', (req, res) => {
     })
 })
 
+app.get("/api/configuration/sync", requireBasicAuth, async (req, res) => {
+    const rawVersion = req.query.version;
+    const espVersion = typeof rawVersion === "string" && /^\d+$/.test(rawVersion)
+        ? Number(rawVersion)
+        : Number.NaN;
+
+    if (!Number.isSafeInteger(espVersion) || espVersion < 0) {
+        res.status(400).json({
+            error: "version query parameter must be a non-negative integer",
+        });
+        return;
+    }
+
+    try {
+        const configuration = await configRepository.getConfiguration();
+        const changed = espVersion !== configuration.version;
+
+        res.json(changed
+            ? {
+                changed: true,
+                version: configuration.version,
+                configuration,
+            }
+            : {
+                changed: false,
+                version: configuration.version,
+            });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to check configuration";
+        res.status(500).json({ error: message });
+    }
+});
+
 app.get("/api/configuration", requireBasicAuth, async (_req, res) => {
     try {
         res.json(await configRepository.getConfiguration());

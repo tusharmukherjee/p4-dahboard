@@ -1,6 +1,7 @@
 
 {
-  "version": 13,
+  "version": 14,
+  "brightness": 50,
   "modules": [
     {
       "moduleId": "date-and-time",
@@ -112,6 +113,26 @@
         "word": { "color": "#1DB954", "scroll": true },
         "definition": { "color": "#FFFFFF", "scroll": true },
         "example": { "color": "#A7B0AA", "scroll": true }
+      }
+    },
+    {
+      "moduleId": "custom-message",
+      "name": "Custom Message",
+      "enabled": false,
+      "duration": 10000,
+      "dataSource": "configuration",
+      "staticData": {
+        "text": "Stay focused. You are doing great!"
+      },
+      "display": {
+        "mode": "single",
+        "renderer": "message"
+      },
+      "config": {
+        "text": {
+          "color": "#FFFFFF",
+          "scroll": true
+        }
       }
     },
     {

@@ -67,6 +67,17 @@ curl -u "admin:your-password" \
   -d '{"version":10,"payload":{"batchSize":5}}'
 ```
 
+The ESP can check for configuration changes without requesting module data:
+
+```bash
+curl -u "admin:your-password" \
+  "http://127.0.0.1:3000/api/configuration/sync?version=14"
+```
+
+When the version is current, the response only contains `changed: false` and
+the current `version`. When it differs, `changed` is `true` and the response
+also contains the complete updated `configuration` for the ESP to store.
+
 Basic Authentication uses Base64 encoding, not encryption. Use HTTPS when
 the API is accessed outside a trusted local network.
 

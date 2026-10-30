@@ -94,6 +94,15 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
     if (typeof value.enabled !== "boolean") {
         throw new Error(`${location}.enabled must be a boolean`);
     }
+    if (value.dataSource !== undefined && value.dataSource !== "api" && value.dataSource !== "configuration") {
+        throw new Error(`${location}.dataSource must be either api or configuration`);
+    }
+    if (value.staticData !== undefined && !isRecord(value.staticData)) {
+        throw new Error(`${location}.staticData must be an object`);
+    }
+    if (value.dataSource === "configuration" && !isRecord(value.staticData)) {
+        throw new Error(`${location}.staticData is required when dataSource is configuration`);
+    }
     if (value.refreshTime !== undefined) {
         requirePositiveNumber(value.refreshTime, `${location}.refreshTime`);
     }
