@@ -14,9 +14,11 @@ import { ModuleDataService } from "../modules/moduleDataService.js";
 import type { DashboardConfiguration } from "../config/dashboardConfig.js";
 import { VocabularyModule } from "../modules/vocabularyModule.js";
 import { CountdownModule } from "../modules/countdownModule.js";
+import { allowConfiguredOrigins } from "../middleware/cors.js";
 
 export const app = express();
 
+app.use(allowConfiguredOrigins);
 app.use(express.json());
 
 const registry = new ModuleRegistry();
