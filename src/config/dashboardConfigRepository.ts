@@ -7,6 +7,7 @@ import type {
 } from "./dashboardConfig.js";
 
 const DEFAULT_CONFIGURATION_ID = "default";
+const MAX_MODULES = 10;
 
 export class DashboardConfigurationRepository {
     async getConfiguration(): Promise<DashboardConfiguration> {
@@ -73,7 +74,6 @@ export function validateDashboardConfiguration(value: unknown): DashboardConfigu
     if (!Array.isArray(value.modules)) {
         throw new Error("Configuration modules must be an array");
     }
-
     const moduleIds = new Set<string>();
     const modules = value.modules.map((module, index) => {
         const validated = validateModule(module, index);
@@ -83,6 +83,9 @@ export function validateDashboardConfiguration(value: unknown): DashboardConfigu
         moduleIds.add(validated.moduleId);
         return validated;
     });
+    if (modules.filter((module) => module.enabled).length > MAX_MODULES) {
+        throw new Error(`Configuration supports at most ${MAX_MODULES} enabled modules`);
+    }
 
     return {
         version: value.version as number,
@@ -98,6 +101,9 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
     }
 
     requireNonEmptyString(value.moduleId, `${location}.moduleId`);
+    if (value.moduleType !== undefined) {
+        requireNonEmptyString(value.moduleType, `${location}.moduleType`);
+    }
     requireNonEmptyString(value.name, `${location}.name`);
     requirePositiveNumber(value.duration, `${location}.duration`);
     if (typeof value.enabled !== "boolean") {
@@ -123,6 +129,17 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
     }
     if (value.payload !== undefined && !isRecord(value.payload)) {
         throw new Error(`${location}.payload must be an object`);
+    }
+    if ((value.moduleType ?? value.moduleId) === "football" && value.enabled) {
+        const payload = value.payload;
+        if (!isRecord(payload) || !Number.isSafeInteger(payload.teamId) ||
+            (payload.teamId as number) < 1 || typeof payload.competitionCode !== "string" ||
+            !/^[A-Z0-9]{2,8}$/.test(payload.competitionCode)) {
+            throw new Error(`${location}.payload needs a selected football competition and team`);
+        }
+        if (!isRecord(value.display) || value.display.renderer !== "football") {
+            throw new Error(`${location}.display.renderer must be football`);
+        }
     }
     if (!isRecord(value.config)) {
         throw new Error(`${location}.config must be an object`);

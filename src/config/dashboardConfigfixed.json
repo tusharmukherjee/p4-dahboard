@@ -166,6 +166,20 @@
       "config": {}
     },
     {
+      "moduleId": "football",
+      "name": "Football",
+      "enabled": false,
+      "duration": 10000,
+      "refreshTime": 60000,
+      "dataSource": "api",
+      "payload": { "competitionCode": "", "teamId": 0 },
+      "display": { "mode": "single", "renderer": "football" },
+      "config": {
+        "fixture": { "color": "#FFFFFF", "scroll": true },
+        "score": { "color": "#C9FF3D" }
+      }
+    },
+    {
       "moduleId": "focus-countdown",
       "name": "Focus Countdown",
       "enabled": true,

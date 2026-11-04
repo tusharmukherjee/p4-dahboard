@@ -11,6 +11,12 @@ export interface OAuthTokenSet {
     scopes: string | null;
 }
 
+export interface OAuthConnectionStatus {
+    connected: boolean;
+    expiresAt: Date | null;
+    scopes: string | null;
+}
+
 export class OAuthTokenRepository {
     private readonly users = new SystemUserRepository();
 
@@ -37,6 +43,18 @@ export class OAuthTokenRepository {
             expiresAt: token.expiresAt,
             scopes: token.scopes,
         };
+    }
+
+    async status(provider: string): Promise<OAuthConnectionStatus> {
+        const user = await this.getSystemUser();
+        const [token] = await getDatabase()
+            .select({ expiresAt: oauthTokens.expiresAt, scopes: oauthTokens.scopes })
+            .from(oauthTokens)
+            .where(and(eq(oauthTokens.userId, user.id), eq(oauthTokens.provider, provider)))
+            .limit(1);
+        return token
+            ? { connected: true, expiresAt: token.expiresAt, scopes: token.scopes }
+            : { connected: false, expiresAt: null, scopes: null };
     }
 
     async save(provider: string, tokens: OAuthTokenSet): Promise<void> {

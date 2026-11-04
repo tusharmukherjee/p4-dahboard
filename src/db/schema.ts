@@ -36,3 +36,21 @@ export const dashboardConfigurations = pgTable("dashboard_configurations", {
     modules: jsonb("modules").$type<DashboardModuleConfig[]>().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Reusable defaults are kept separately from configured dashboard instances.
+// Removing a module instance never removes its type from this catalog.
+export const dashboardModuleCatalog = pgTable("dashboard_module_catalog", {
+    moduleType: text("module_type").primaryKey(),
+    name: text("name").notNull(),
+    template: jsonb("template").$type<DashboardModuleConfig>().notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Shared provider cache survives server restarts and avoids repeated quota use.
+export const footballCache = pgTable("football_cache", {
+    key: text("key").primaryKey(),
+    response: jsonb("response").$type<unknown>().notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});

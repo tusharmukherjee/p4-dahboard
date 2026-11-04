@@ -37,6 +37,8 @@ export interface DashboardScheduleConfig {
 
 export interface DashboardModuleConfig {
   moduleId: string;
+  /** Stable implementation/catalog key. Falls back to moduleId for legacy configurations. */
+  moduleType?: string;
   name: string;
   duration: number;
   enabled: boolean;
