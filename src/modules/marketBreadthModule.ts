@@ -190,6 +190,7 @@ interface ProviderSession {
 async function createNseSession(apiUrl: URL, requestId: string): Promise<ProviderSession> {
     let current = new URL("/", apiUrl.origin);
     const cookies = new Map<string, string>();
+    let challengeRetryUsed = false;
 
     // Follow redirects manually so Set-Cookie headers from intermediate NSE
     // responses are retained (native fetch only exposes the final response).
@@ -223,12 +224,15 @@ async function createNseSession(apiUrl: URL, requestId: string): Promise<Provide
         }
 
         const receivedCookieNames: string[] = [];
+        let receivedNewCookie = false;
         for (const setCookie of response.headers.getSetCookie()) {
             const pair = setCookie.split(";", 1)[0];
             const separator = pair.indexOf("=");
             if (separator > 0) {
                 const name = pair.slice(0, separator);
-                cookies.set(name, pair.slice(separator + 1));
+                const value = pair.slice(separator + 1);
+                if (cookies.get(name) !== value) receivedNewCookie = true;
+                cookies.set(name, value);
                 receivedCookieNames.push(name);
             }
         }
@@ -252,6 +256,28 @@ async function createNseSession(apiUrl: URL, requestId: string): Promise<Provide
         }
 
         if (!response.ok) {
+            // Akamai may answer the first page request with 403 while issuing
+            // AKA_A2. Replay the page once with that cookie, then let the API
+            // retry use the best session we obtained even if the HTML page is
+            // still blocked. This distinguishes a cookie challenge from a
+            // hard hosting-IP block without looping indefinitely.
+            if ((response.status === 401 || response.status === 403) && cookies.size > 0) {
+                if (receivedNewCookie && !challengeRetryUsed) {
+                    challengeRetryUsed = true;
+                    console.warn(
+                        `[market:${requestId}] session challenge returned ${response.status}; ` +
+                        `replaying once with cookieCount=${cookies.size}`,
+                    );
+                    continue;
+                }
+
+                console.warn(
+                    `[market:${requestId}] session page remains status=${response.status}; ` +
+                    `proceeding to API retry with cookieCount=${cookies.size}`,
+                );
+                return sessionFromCookies(current, cookies);
+            }
+
             console.error(
                 `[market:${requestId}] session initialization rejected status=${response.status} ` +
                 `url=${safeUrl(current)} ${edgeDetails(response)}`,
@@ -265,14 +291,18 @@ async function createNseSession(apiUrl: URL, requestId: string): Promise<Provide
             `[market:${requestId}] session initialized origin=${current.origin} ` +
             `cookieCount=${cookies.size}`,
         );
-        return {
-            origin: current.origin,
-            cookie: [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; "),
-            cookieCount: cookies.size,
-        };
+        return sessionFromCookies(current, cookies);
     }
 
     throw new Error("NSE session initialization exceeded the redirect limit");
+}
+
+function sessionFromCookies(current: URL, cookies: Map<string, string>): ProviderSession {
+    return {
+        origin: current.origin,
+        cookie: [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; "),
+        cookieCount: cookies.size,
+    };
 }
 
 function isNseHost(hostname: string): boolean {
