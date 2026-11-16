@@ -200,6 +200,28 @@
           "color": "#1DB954"
         }
       }
+    },
+    {
+      "moduleId": "market-breadth",
+      "name": "Market Breadth",
+      "enabled": false,
+      "duration": 10000,
+      "refreshTime": 60000,
+      "dataSource": "api",
+      "payload": {
+        "indices": ["NIFTY 50"]
+      },
+      "display": {
+        "mode": "single",
+        "renderer": "market-breadth",
+        "order": "sequential"
+      },
+      "config": {
+        "advancing": { "color": "#28A86B" },
+        "declining": { "color": "#F04444" },
+        "unchanged": { "color": "#FFFFFF" },
+        "indices": { "scroll": true }
+      }
     }
   ]
 }

@@ -141,6 +141,18 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
             throw new Error(`${location}.display.renderer must be football`);
         }
     }
+    if ((value.moduleType ?? value.moduleId) === "market-breadth") {
+        const payload = value.payload;
+        const indices = isRecord(payload) ? payload.indices : undefined;
+        if (!Array.isArray(indices) || indices.length < 1 || indices.length > 20 ||
+            indices.some((index) => typeof index !== "string" || index.trim().length === 0) ||
+            new Set(indices.map((index) => (index as string).trim().toUpperCase())).size !== indices.length) {
+            throw new Error(`${location}.payload.indices must contain 1 to 20 unique index names`);
+        }
+        if (!isRecord(value.display) || value.display.renderer !== "market-breadth") {
+            throw new Error(`${location}.display.renderer must be market-breadth`);
+        }
+    }
     if (!isRecord(value.config)) {
         throw new Error(`${location}.config must be an object`);
     }

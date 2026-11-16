@@ -36,6 +36,13 @@
       "when": 1793781423337,
       "tag": "0004_famous_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794796200000,
+      "tag": "0005_market_breadth",
+      "breakpoints": true
     }
   ]
 }

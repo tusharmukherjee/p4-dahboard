@@ -19,6 +19,7 @@ import { FootballModule } from "../modules/footballModule.js";
 import { DashboardModuleCatalogRepository } from "../config/dashboardModuleCatalogRepository.js";
 import { competitions, teams, saveToken, tokenConfigured, FootballProviderError } from "../football/footballService.js";
 import { OAuthTokenRepository } from "../auth/oauthTokenRepository.js";
+import { MarketBreadthModule, listAvailableMarketIndices } from "../modules/marketBreadthModule.js";
 
 export const app = express();
 
@@ -34,6 +35,7 @@ registry.register(new GoogleCalendarModule(googleOAuth));
 registry.register(new VocabularyModule());
 registry.register(new CountdownModule());
 registry.register(new FootballModule());
+registry.register(new MarketBreadthModule());
 
 const configRepository = new DashboardConfigurationRepository();
 const spotifyOAuth = new SpotifyOAuth();
@@ -103,6 +105,15 @@ app.get("/api/football/competitions/:code/teams", requireBasicAuth, async (req, 
     }
     try { res.json({ teams: await teams(code) }); }
     catch (error) { footballFailure(error, res); }
+});
+
+app.get("/api/market-indices", requireBasicAuth, async (_req, res) => {
+    try {
+        res.json({ indices: await listAvailableMarketIndices() });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to load market indices";
+        res.status(502).json({ error: message });
+    }
 });
 
 app.get("/spotify/login", requireBasicAuth, (_req, res) => {
