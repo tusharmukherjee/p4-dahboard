@@ -1,8 +1,11 @@
 import { BaseModule } from "./baseModule.js";
 import type { ModuleContext } from "./contracts.js";
 
-const DEFAULT_API_URL = "https://www.nseindia.com/api/allIndices";
+const DEFAULT_API_URL = "https://www.nseindia.in/api/allIndices";
 const MAX_SELECTED_INDICES = 20;
+const REQUEST_TIMEOUT_MS = 15_000;
+const BROWSER_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 interface MarketBreadthConfig {
     payload?: {
@@ -97,21 +100,105 @@ export async function listAvailableMarketIndices(): Promise<Array<{
 }
 
 async function fetchProviderResponse(): Promise<ProviderResponse> {
-    const response = await fetch(process.env.MARKET_INDICES_API_URL ?? DEFAULT_API_URL, {
-        headers: {
-            Accept: "application/json",
-            "Accept-Language": "en-IN,en;q=0.9",
-            Referer: "https://www.nseindia.com/market-data/live-equity-market",
-            "User-Agent": "Mozilla/5.0 (compatible; P4Dashboard/1.0)",
-        },
-        signal: AbortSignal.timeout(15_000),
+    const apiUrl = new URL(process.env.MARKET_INDICES_API_URL ?? DEFAULT_API_URL);
+    let response = await fetch(apiUrl, {
+        headers: providerApiHeaders(`${apiUrl.origin}/market-data/live-equity-market`),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
+    // NSE's public website API does not use API credentials, but its edge
+    // requires the browser-session cookies issued by the website. Cloud hosts
+    // commonly receive 401/403 until that session has been established.
+    if ((response.status === 401 || response.status === 403) && isNseHost(apiUrl.hostname)) {
+        const session = await createNseSession(apiUrl);
+        const retryUrl = new URL(`${apiUrl.pathname}${apiUrl.search}`, session.origin);
+        response = await fetch(retryUrl, {
+            headers: providerApiHeaders(
+                `${session.origin}/market-data/live-equity-market`,
+                session.cookie,
+            ),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+    }
+
     if (!response.ok) {
-        throw new Error(`Market indices API returned ${response.status}`);
+        const hint = response.status === 403 && isNseHost(apiUrl.hostname)
+            ? "; NSE may be blocking the hosting provider's IP address"
+            : "";
+        throw new Error(`Market indices API returned ${response.status}${hint}`);
     }
 
     return await response.json() as ProviderResponse;
+}
+
+function providerApiHeaders(referer: string, cookie?: string): HeadersInit {
+    return {
+        Accept: "application/json, text/plain, */*",
+        "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Referer: referer,
+        "User-Agent": BROWSER_USER_AGENT,
+        ...(cookie ? { Cookie: cookie } : {}),
+    };
+}
+
+interface ProviderSession {
+    origin: string;
+    cookie: string;
+}
+
+async function createNseSession(apiUrl: URL): Promise<ProviderSession> {
+    let current = new URL("/", apiUrl.origin);
+    const cookies = new Map<string, string>();
+
+    // Follow redirects manually so Set-Cookie headers from intermediate NSE
+    // responses are retained (native fetch only exposes the final response).
+    for (let redirectCount = 0; redirectCount < 5; redirectCount += 1) {
+        const cookie = [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
+        const response = await fetch(current, {
+            redirect: "manual",
+            headers: {
+                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",
+                "Cache-Control": "no-cache",
+                "User-Agent": BROWSER_USER_AGENT,
+                ...(cookie ? { Cookie: cookie } : {}),
+            },
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+
+        for (const setCookie of response.headers.getSetCookie()) {
+            const pair = setCookie.split(";", 1)[0];
+            const separator = pair.indexOf("=");
+            if (separator > 0) cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+        }
+
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get("location");
+            if (!location) throw new Error("NSE session redirect did not include a location");
+            const next = new URL(location, current);
+            if (!isNseHost(next.hostname)) throw new Error("NSE session redirected to an unexpected host");
+            current = next;
+            continue;
+        }
+
+        if (!response.ok) {
+            throw new Error(`NSE session initialization returned ${response.status}`);
+        }
+
+        return {
+            origin: current.origin,
+            cookie: [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; "),
+        };
+    }
+
+    throw new Error("NSE session initialization exceeded the redirect limit");
+}
+
+function isNseHost(hostname: string): boolean {
+    return hostname === "nseindia.com" || hostname.endsWith(".nseindia.com") ||
+        hostname === "nseindia.in" || hostname.endsWith(".nseindia.in");
 }
 
 export function mapMarketResponse(
