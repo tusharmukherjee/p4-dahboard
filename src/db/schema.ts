@@ -1,4 +1,4 @@
-import { integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { DashboardModuleConfig } from "../config/dashboardConfig.js";
 
 // One row represents a person allowed to call the protected API.
@@ -54,3 +54,14 @@ export const footballCache = pgTable("football_cache", {
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+
+// Periodic Upstox prices provide the reference point for 5/15-minute momentum.
+export const marketIndexSnapshots = pgTable("market_index_snapshots", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    instrumentKey: text("instrument_key").notNull(),
+    price: doublePrecision("price").notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true }).notNull(),
+}, (table) => [
+    index("market_index_snapshots_instrument_time_idx")
+        .on(table.instrumentKey, table.capturedAt),
+]);

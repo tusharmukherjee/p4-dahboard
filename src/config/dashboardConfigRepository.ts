@@ -143,11 +143,14 @@ function validateModule(value: unknown, index: number): DashboardModuleConfig {
     }
     if ((value.moduleType ?? value.moduleId) === "market-breadth") {
         const payload = value.payload;
-        const indices = isRecord(payload) ? payload.indices : undefined;
-        if (!Array.isArray(indices) || indices.length < 1 || indices.length > 20 ||
-            indices.some((index) => typeof index !== "string" || index.trim().length === 0) ||
-            new Set(indices.map((index) => (index as string).trim().toUpperCase())).size !== indices.length) {
-            throw new Error(`${location}.payload.indices must contain 1 to 20 unique index names`);
+        const instrumentKeys = isRecord(payload) ? payload.instrumentKeys : undefined;
+        if (!Array.isArray(instrumentKeys) || instrumentKeys.length < 1 || instrumentKeys.length > 20 ||
+            instrumentKeys.some((key) => typeof key !== "string" || !/^NSE_INDEX\|[^,|]{1,80}$/.test(key)) ||
+            new Set(instrumentKeys).size !== instrumentKeys.length) {
+            throw new Error(`${location}.payload.instrumentKeys must contain 1 to 20 unique NSE index keys`);
+        }
+        if (payload?.momentumMinutes !== undefined && payload.momentumMinutes !== 5 && payload.momentumMinutes !== 15) {
+            throw new Error(`${location}.payload.momentumMinutes must be 5 or 15`);
         }
         if (!isRecord(value.display) || value.display.renderer !== "market-breadth") {
             throw new Error(`${location}.display.renderer must be market-breadth`);

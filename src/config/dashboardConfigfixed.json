@@ -203,13 +203,18 @@
     },
     {
       "moduleId": "market-breadth",
-      "name": "Market Breadth",
+      "name": "Market Insights",
       "enabled": false,
-      "duration": 10000,
+      "duration": 16000,
       "refreshTime": 60000,
       "dataSource": "api",
       "payload": {
-        "indices": ["NIFTY 50"]
+        "instrumentKeys": [
+          "NSE_INDEX|Nifty 50",
+          "NSE_INDEX|Nifty Bank",
+          "NSE_INDEX|India VIX"
+        ],
+        "momentumMinutes": 5
       },
       "display": {
         "mode": "single",
@@ -217,10 +222,9 @@
         "order": "sequential"
       },
       "config": {
-        "advancing": { "color": "#28A86B" },
-        "declining": { "color": "#F04444" },
-        "unchanged": { "color": "#FFFFFF" },
-        "indices": { "scroll": true }
+        "positive": { "color": "#28A86B" },
+        "negative": { "color": "#F04444" },
+        "neutral": { "color": "#FFFFFF" }
       }
     }
   ]

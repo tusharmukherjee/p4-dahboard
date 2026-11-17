@@ -19,7 +19,13 @@ import { FootballModule } from "../modules/footballModule.js";
 import { DashboardModuleCatalogRepository } from "../config/dashboardModuleCatalogRepository.js";
 import { competitions, teams, saveToken, tokenConfigured, FootballProviderError } from "../football/footballService.js";
 import { OAuthTokenRepository } from "../auth/oauthTokenRepository.js";
-import { MarketBreadthModule, listAvailableMarketIndices } from "../modules/marketBreadthModule.js";
+import { MarketBreadthModule } from "../modules/marketBreadthModule.js";
+import {
+    saveUpstoxToken,
+    SUPPORTED_MARKET_INDICES,
+    upstoxTokenConfigured,
+    UpstoxProviderError,
+} from "../market/upstoxService.js";
 
 export const app = express();
 
@@ -108,11 +114,29 @@ app.get("/api/football/competitions/:code/teams", requireBasicAuth, async (req, 
 });
 
 app.get("/api/market-indices", requireBasicAuth, async (_req, res) => {
+    res.json({ indices: SUPPORTED_MARKET_INDICES });
+});
+
+app.get("/api/upstox/token", requireBasicAuth, async (_req, res) => {
+    try { res.json({ configured: await upstoxTokenConfigured() }); }
+    catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : "Unable to read Upstox token" });
+    }
+});
+
+app.put("/api/upstox/token", requireBasicAuth, async (req, res) => {
     try {
-        res.json({ indices: await listAvailableMarketIndices() });
+        if (typeof req.body?.token !== "string") {
+            res.status(400).json({ error: "token must be a string" });
+            return;
+        }
+        await saveUpstoxToken(req.body.token);
+        moduleDataService.clear();
+        res.json({ configured: true });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to load market indices";
-        res.status(502).json({ error: message });
+        res.status(error instanceof UpstoxProviderError ? error.status : 500).json({
+            error: error instanceof Error ? error.message : "Unable to save Upstox token",
+        });
     }
 });
 
@@ -339,7 +363,7 @@ app.post("/api/modules/:moduleId/data", async (req, res) => {
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown module error";
-        res.status(error instanceof FootballProviderError ? error.status : 500).json({
+        res.status(error instanceof FootballProviderError || error instanceof UpstoxProviderError ? error.status : 500).json({
             error: message
         })
     }

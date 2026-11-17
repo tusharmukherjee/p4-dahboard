@@ -43,6 +43,13 @@
       "when": 1794796200000,
       "tag": "0005_market_breadth",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794902235064,
+      "tag": "0006_grey_revanche",
+      "breakpoints": true
     }
   ]
 }
